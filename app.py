@@ -2,7 +2,6 @@ import streamlit as st
 from google import genai
 from google.genai import types
 from streamlit_chat import message
-import time
 
 
 gemini_api_key=st.secrets["model"]["gemini_api_key"]
@@ -15,14 +14,22 @@ try:
 except Exception as e:
     print("Error getting gemini client")
 
-
+#model initialisation
 chat = client.chats.create(
     model="models/gemini-2.5-flash-preview-05-20"
 )
 
+#configuring model
 tools=[]
 tools.append(types.Tool(google_search=types.GoogleSearch()))
 
+system_instruction=st.secrets["model"]["system_instruction"]
+
+config=types.GenerateContentConfig(
+    tools=tools,
+    system_instruction=system_instruction,
+)
+#configuration done
 
 
 def get_response(prompt:str):
@@ -37,14 +44,11 @@ def get_response(prompt:str):
     """
     response=chat.send_message_stream(
         message=prompt,
-        config=types.GenerateContentConfig(
-            tools=tools
-        )
+        config=config
     )
 
     for chunk in response:
         yield chunk.text + " "
-        time.sleep(0.02)
 
 
 
@@ -123,6 +127,14 @@ if prompt:=st.chat_input("Enter message: "):
 
     # response = f"Bot: {get_response(prompt)}"
 
-    with st.chat_message("assistant"):
-        response = st.write_stream(get_response(prompt=prompt))
-    st.session_state.messages.append({"role": "assistant", "message": response})
+    with st.spinner("Thinking.."):
+        try:
+            with st.chat_message("assistant"):
+                # with st.spinner("Thinking.."):
+                response = st.write_stream(get_response(prompt=prompt))
+                if 'happy birthday' in response.lower():
+                    st.balloons()
+            st.session_state.messages.append({"role": "assistant", "message": response})
+        except Exception:
+            with st.chat_message("assistant"):
+                st.write("Error fetching response. Try again.")
