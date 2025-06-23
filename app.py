@@ -14,12 +14,9 @@ try:
 except Exception as e:
     print("Error getting gemini client")
 
-#model initialisation
-chat = client.chats.create(
-    model="models/gemini-2.5-flash-preview-05-20"
-)
 
-#configuring model
+
+# ----------configuring model----------
 tools=[]
 tools.append(types.Tool(google_search=types.GoogleSearch()))
 
@@ -29,7 +26,13 @@ config=types.GenerateContentConfig(
     tools=tools,
     system_instruction=system_instruction,
 )
-#configuration done
+#----------configuration done----------
+
+#model initialisation in streamlit using session states
+if "chat" not in st.session_state:
+    st.session_state.chat=client.chats.create(
+        model="models/gemini-2.5-flash-preview-05-20"
+    )
 
 
 def get_response(prompt:str):
@@ -42,14 +45,13 @@ def get_response(prompt:str):
     Returns:
     Generator object (use write_stream)
     """
-    response=chat.send_message_stream(
+    response=st.session_state.chat.send_message_stream(
         message=prompt,
         config=config
     )
 
     for chunk in response:
         yield chunk.text + " "
-
 
 
 
@@ -62,53 +64,7 @@ st.set_page_config(
 
 
 
-#chat
-# def on_input_change():
-#     user_input = st.session_state.user_input
-#     if not user_input:
-#         st.warning("Please enter a message before sending.")
-#         return
-#     st.session_state.past.append(user_input)
-#     res=response(
-#         prompt=user_input
-#     )
-#     st.session_state.generated.append(res)
-#     st.session_state.user_input=""
-
-# def on_btn_click():
-#     del st.session_state.past[:]
-#     del st.session_state.generated[:]
-
-
-# #adding session states
-# if 'user_input' not in st.session_state:
-#     st.session_state['user_input'] = ''
-
-# if 'past' not in st.session_state:
-#     st.session_state['past'] = []
-
-# if 'generated' not in st.session_state:
-#     st.session_state['generated'] = []
-# #session states added
-
-
-
-# with st.container():
-#     for i in range(len(st.session_state['generated'])):
-#         message(st.session_state['past'][i], is_user=True, key=f"{i}_user")
-#         message(
-#             st.session_state['generated'][i],
-#             key=f"{i}",
-#             allow_html=True
-#         )
-
-
-# with st.container():
-#     st.text_input("User Input: ", on_change=on_input_change, key="user_input")
-
-
-#testing native streamlit chat features
-
+#chat using native streamlit chat features
 
 if "messages" not in st.session_state:
     st.session_state["messages"] = []
@@ -135,6 +91,6 @@ if prompt:=st.chat_input("Enter message: "):
                 if 'happy birthday' in response.lower():
                     st.balloons()
             st.session_state.messages.append({"role": "assistant", "message": response})
-        except Exception:
+        except Exception as e:
             with st.chat_message("assistant"):
-                st.write("Error fetching response. Try again.")
+                st.write(f"Error fetching response. Try again. Error-{e}")
