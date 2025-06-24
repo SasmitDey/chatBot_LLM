@@ -17,16 +17,16 @@ except Exception as e:
 
 
 # ----------configuring model----------
+system_instruction=st.secrets["model"]["system_instruction"]
 tools=[]
 tools.append(types.Tool(google_search=types.GoogleSearch()))
-
-system_instruction=st.secrets["model"]["system_instruction"]
 
 config=types.GenerateContentConfig(
     tools=tools,
     system_instruction=system_instruction,
 )
 #----------configuration done----------
+
 
 #model initialisation in streamlit using session states
 if "chat" not in st.session_state:
@@ -39,10 +39,13 @@ def get_response(prompt:str):
     """
     Generates generator type object as a response to the provided input prompt
 
-    Args:
+    Parameters
+    ---------------
+    message:
     Prompt which is the message you want to send to the bot in the format of string
 
-    Returns:
+    Returns
+    ---------------
     Generator object (use write_stream)
     """
     response=st.session_state.chat.send_message_stream(
@@ -81,16 +84,16 @@ if prompt:=st.chat_input("Enter message: "):
 
     st.session_state.messages.append({"role":"user","message":prompt})
 
-    # response = f"Bot: {get_response(prompt)}"
-
     with st.spinner("Thinking.."):
         try:
             with st.chat_message("assistant"):
-                # with st.spinner("Thinking.."):
                 response = st.write_stream(get_response(prompt=prompt))
+                #silly little function
                 if 'happy birthday' in response.lower():
                     st.balloons()
+                    
             st.session_state.messages.append({"role": "assistant", "message": response})
+
         except Exception as e:
             with st.chat_message("assistant"):
-                st.write(f"Error fetching response. Try again. Error-{e}")
+                st.warning(f"Error fetching response. Try again. Error-{e}")
